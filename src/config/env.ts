@@ -17,5 +17,9 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 
+export const corsOrigins = env.CORS_ORIGIN.split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
 export const maxFileSizeBytes = Math.floor(env.MAX_FILE_SIZE_MB * 1024 * 1024);
 export const uploadTtlMs = env.UPLOAD_TTL_MINUTES * 60 * 1000;

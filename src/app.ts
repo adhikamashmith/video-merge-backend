@@ -5,7 +5,7 @@ import { pinoHttp } from "pino-http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env } from "./config/env.js";
+import { corsOrigins, env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { mergeRoutes } from "./routes/mergeRoutes.js";
 import { healthRoutes } from "./routes/healthRoutes.js";
@@ -18,7 +18,19 @@ export function createApp(): express.Express {
 
   app.disable("x-powered-by");
   app.use(helmet({ crossOriginResourcePolicy: false }));
-  app.use(cors({ origin: env.CORS_ORIGIN, credentials: false }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin || corsOrigins.includes(origin.replace(/\/$/, ""))) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+      },
+      credentials: false
+    })
+  );
   app.use(pinoHttp({ logger }));
   app.use(express.json({ limit: "1mb" }));
 
