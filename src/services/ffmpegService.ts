@@ -1,0 +1,116 @@
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { env } from "../config/env.js";
+import { AppError } from "../errors/AppError.js";
+import type { ClassifiedMedia, MergeJob } from "../types/media.js";
+
+export interface FfmpegProgress {
+  percent?: number;
+  timemark?: string;
+}
+
+export class FfmpegService {
+  async merge(job: MergeJob): Promise<void> {
+    const args = buildMergeArgs(job.media1, job.media2, job.outputPath);
+    await runFfmpeg(args);
+  }
+}
+
+export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia, outputPath: string): string[] {
+  const audioDuration = media2.durationSeconds;
+  if (!audioDuration || audioDuration <= 0) {
+    throw new AppError(422, "AUDIO_DURATION_UNAVAILABLE", "The source audio duration could not be determined.");
+  }
+
+  const commonOutput = [
+    "-map",
+    "0:v:0",
+    "-map",
+    "1:a:0",
+    "-t",
+    audioDuration.toFixed(3),
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-max_muxing_queue_size",
+    "4096",
+    "-y",
+    outputPath
+  ];
+
+  if (media1.kind === "image") {
+    return [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-loop",
+      "1",
+      "-framerate",
+      "30",
+      "-i",
+      media1.path,
+      "-i",
+      media2.path,
+      "-vf",
+      "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+      ...commonOutput
+    ];
+  }
+
+  return [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-stream_loop",
+    "-1",
+    "-i",
+    media1.path,
+    "-i",
+    media2.path,
+    ...commonOutput
+  ];
+}
+
+async function runFfmpeg(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(env.FFMPEG_PATH, args, { windowsHide: true });
+    let stderr = "";
+
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+      if (stderr.length > 12000) stderr = stderr.slice(-12000);
+    });
+    child.on("error", (error) => {
+      reject(new AppError(500, "FFMPEG_NOT_AVAILABLE", "FFmpeg is not available on the server.", error.message));
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new AppError(422, "FFMPEG_PROCESSING_FAILED", "FFmpeg could not merge the uploaded media.", {
+        exitCode: code,
+        stderr
+      }));
+    });
+  });
+}
+
+export function outputFilename(jobId: string): string {
+  return `merged-${jobId}.mp4`;
+}
+
+export function outputPathFor(workDir: string, jobId: string): string {
+  return path.join(workDir, outputFilename(jobId));
+}
