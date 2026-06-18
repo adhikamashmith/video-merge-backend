@@ -45,6 +45,11 @@ describe("buildMergeArgs", () => {
     expect(args).toContain("-map");
     expect(args).toContain("1:a:0");
     expect(args).toContain("300.221");
+    expect(args).toContain("ultrafast");
+    expect(args).toContain("30");
+    expect(args).toContain("128k");
+    expect(args).toContain("512");
+    expect(args).toContain("scale=-2:min(720\\,ih):force_original_aspect_ratio=decrease,format=yuv420p");
     expect(args).not.toContain("-shortest");
   });
 
@@ -63,6 +68,9 @@ describe("buildMergeArgs", () => {
     ]);
     expect(args).toContain("1:a:0");
     expect(args).toContain("300.221");
+    expect(args).toContain("-threads");
+    expect(args).toContain("1");
+    expect(args).toContain("scale=-2:min(720\\,ih):force_original_aspect_ratio=decrease,format=yuv420p");
     expect(args).not.toContain("-shortest");
   });
 });

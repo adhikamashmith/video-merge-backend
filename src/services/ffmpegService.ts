@@ -22,6 +22,8 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
     throw new AppError(422, "AUDIO_DURATION_UNAVAILABLE", "The source audio duration could not be determined.");
   }
 
+  const videoFilter = `scale=-2:min(${env.OUTPUT_MAX_HEIGHT}\\,ih):force_original_aspect_ratio=decrease,format=yuv420p`;
+
   const commonOutput = [
     "-map",
     "0:v:0",
@@ -32,7 +34,11 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
     "-c:v",
     "libx264",
     "-preset",
-    "veryfast",
+    env.FFMPEG_PRESET,
+    "-crf",
+    String(env.FFMPEG_CRF),
+    "-threads",
+    String(env.FFMPEG_THREADS),
     "-pix_fmt",
     "yuv420p",
     "-movflags",
@@ -40,9 +46,9 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
     "-c:a",
     "aac",
     "-b:a",
-    "192k",
+    env.OUTPUT_AUDIO_BITRATE,
     "-max_muxing_queue_size",
-    "4096",
+    "512",
     "-y",
     outputPath
   ];
@@ -61,7 +67,7 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
       "-i",
       media2.path,
       "-vf",
-      "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+      videoFilter,
       ...commonOutput
     ];
   }
@@ -76,6 +82,8 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
     media1.path,
     "-i",
     media2.path,
+    "-vf",
+    videoFilter,
     ...commonOutput
   ];
 }
