@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMergeArgs } from "../src/services/ffmpegService";
+import { buildMergeArgs, buildVideoCopyArgs } from "../src/services/ffmpegService";
 import type { ClassifiedMedia } from "../src/types/media";
 
 const image: ClassifiedMedia = {
@@ -71,6 +71,20 @@ describe("buildMergeArgs", () => {
     expect(args).toContain("-threads");
     expect(args).toContain("1");
     expect(args).toContain("scale=-2:min(720\\,ih):force_original_aspect_ratio=decrease,format=yuv420p");
+    expect(args).not.toContain("-shortest");
+  });
+
+  it("can copy primary video for low-memory free-tier processing", () => {
+    const args = buildVideoCopyArgs(video, audioSource, "/tmp/out.mp4");
+
+    expect(args).toContain("-stream_loop");
+    expect(args).toContain("-1");
+    expect(args).toContain("1:a:0");
+    expect(args).toContain("300.221");
+    expect(args).toContain("-c:v");
+    expect(args).toContain("copy");
+    expect(args).toContain("128k");
+    expect(args).not.toContain("-vf");
     expect(args).not.toContain("-shortest");
   });
 });

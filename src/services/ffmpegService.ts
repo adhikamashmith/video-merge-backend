@@ -11,8 +11,17 @@ export interface FfmpegProgress {
 
 export class FfmpegService {
   async merge(job: MergeJob): Promise<void> {
-    const args = buildMergeArgs(job.media1, job.media2, job.outputPath);
-    await runFfmpeg(args);
+    if (job.media1.kind === "video") {
+      try {
+        await runFfmpeg(buildVideoCopyArgs(job.media1, job.media2, job.outputPath));
+        return;
+      } catch {
+        await runFfmpeg(buildMergeArgs(job.media1, job.media2, job.outputPath));
+        return;
+      }
+    }
+
+    await runFfmpeg(buildMergeArgs(job.media1, job.media2, job.outputPath));
   }
 }
 
@@ -85,6 +94,43 @@ export function buildMergeArgs(media1: ClassifiedMedia, media2: ClassifiedMedia,
     "-vf",
     videoFilter,
     ...commonOutput
+  ];
+}
+
+export function buildVideoCopyArgs(media1: ClassifiedMedia, media2: ClassifiedMedia, outputPath: string): string[] {
+  const audioDuration = media2.durationSeconds;
+  if (!audioDuration || audioDuration <= 0) {
+    throw new AppError(422, "AUDIO_DURATION_UNAVAILABLE", "The source audio duration could not be determined.");
+  }
+
+  return [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-stream_loop",
+    "-1",
+    "-i",
+    media1.path,
+    "-i",
+    media2.path,
+    "-map",
+    "0:v:0",
+    "-map",
+    "1:a:0",
+    "-t",
+    audioDuration.toFixed(3),
+    "-c:v",
+    "copy",
+    "-c:a",
+    "aac",
+    "-b:a",
+    env.OUTPUT_AUDIO_BITRATE,
+    "-movflags",
+    "+faststart",
+    "-max_muxing_queue_size",
+    "512",
+    "-y",
+    outputPath
   ];
 }
 
