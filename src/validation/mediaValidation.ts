@@ -21,18 +21,19 @@ export function normalizeUploadedFiles(files: Express.Multer.File[] | undefined)
 }
 
 export function getMergeUploadPair(files: Express.Multer.File[] | undefined): {
-  media1: UploadedMedia;
+  media1: UploadedMedia[];
   media2: UploadedMedia;
 } {
   const normalized = normalizeUploadedFiles(files);
-  const media1 = normalized.find((file) => file.field === "media1");
+  const media1 = normalized.filter((file) => file.field === "media1");
   const media2 = normalized.find((file) => file.field === "media2");
 
-  if (!media1 || !media2) {
-    throw new AppError(400, "MISSING_FILES", "Both media1 and media2 files are required.");
+  if (media1.length === 0 || !media2) {
+    throw new AppError(400, "MISSING_FILES", "At least one Input 1 file and one Input 2 file are required.");
   }
 
-  if (!isAllowedPrimaryExtension(media1.extension)) {
+  const invalidPrimary = media1.find((file) => !isAllowedPrimaryExtension(file.extension));
+  if (invalidPrimary) {
     throw new AppError(415, "INVALID_MEDIA1_FORMAT", "Primary media must be jpg, jpeg, png, webp, mp4, mov, mkv, or webm.");
   }
 

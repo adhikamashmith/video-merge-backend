@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMergeArgs, buildVideoCopyArgs } from "../src/services/ffmpegService";
+import { buildMergeArgs, buildVideoCopyArgs, buildVisualSequenceArgs } from "../src/services/ffmpegService";
 import type { ClassifiedMedia } from "../src/types/media";
 
 const image: ClassifiedMedia = {
@@ -85,6 +85,21 @@ describe("buildMergeArgs", () => {
     expect(args).toContain("copy");
     expect(args).toContain("128k");
     expect(args).not.toContain("-vf");
+    expect(args).not.toContain("-shortest");
+  });
+
+  it("builds a repeated mixed visual sequence for multiple primary files", () => {
+    const shortAudio = { ...audioSource, durationSeconds: 20, probe: { streams: [{ codec_type: "audio" }], format: { duration: "20" } } };
+    const args = buildVisualSequenceArgs([image, video], shortAudio, "/tmp/out.mp4");
+    const filterIndex = args.indexOf("-filter_complex") + 1;
+
+    expect(args.filter((arg) => arg === "/tmp/cover.png")).toHaveLength(2);
+    expect(args.filter((arg) => arg === "/tmp/clip.mp4")).toHaveLength(2);
+    expect(args).toContain("-t");
+    expect(args).toContain("3.000");
+    expect(args[filterIndex]).toContain("concat=n=4:v=1:a=0[v]");
+    expect(args).toContain("[v]");
+    expect(args).toContain("4:a:0");
     expect(args).not.toContain("-shortest");
   });
 });

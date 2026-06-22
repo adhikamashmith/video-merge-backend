@@ -12,14 +12,14 @@ export class MergeService {
     private readonly ffmpeg = new FfmpegService()
   ) {}
 
-  async merge(media1Upload: UploadedMedia, media2Upload: UploadedMedia): Promise<MergeResult> {
+  async merge(media1Uploads: UploadedMedia[], media2Upload: UploadedMedia): Promise<MergeResult> {
     const id = nanoid();
     const workDir = path.join(env.MEDIA_TMP_DIR, "jobs", id);
     await ensureDir(workDir);
 
     try {
       const [media1, media2] = await Promise.all([
-        this.classifier.classify(media1Upload, ["image", "video"]),
+        Promise.all(media1Uploads.map((upload) => this.classifier.classify(upload, ["image", "video"]))),
         this.classifier.classify(media2Upload, ["audio", "video"])
       ]);
 

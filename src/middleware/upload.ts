@@ -28,9 +28,9 @@ export const uploadMergeFiles = multer({
   storage,
   limits: {
     fileSize: maxFileSizeBytes,
-    files: 2
+    files: 11
   }
 }).fields([
-  { name: "media1", maxCount: 1 },
+  { name: "media1", maxCount: 10 },
   { name: "media2", maxCount: 1 }
 ]);

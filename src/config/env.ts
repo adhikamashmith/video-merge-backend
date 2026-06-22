@@ -17,6 +17,7 @@ const envSchema = z.object({
   FFMPEG_CRF: z.coerce.number().int().min(18).max(35).default(30),
   OUTPUT_MAX_HEIGHT: z.coerce.number().int().min(240).max(1080).default(720),
   OUTPUT_AUDIO_BITRATE: z.string().default("128k"),
+  IMAGE_DURATION_SECONDS: z.coerce.number().positive().default(3),
   MEDIA_TMP_DIR: z.string().default(path.join(process.cwd(), "tmp"))
 });
 

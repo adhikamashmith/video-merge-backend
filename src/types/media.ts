@@ -35,7 +35,7 @@ export interface ClassifiedMedia extends UploadedMedia {
 
 export interface MergeJob {
   id: string;
-  media1: ClassifiedMedia;
+  media1: ClassifiedMedia[];
   media2: ClassifiedMedia;
   outputPath: string;
   workDir: string;
